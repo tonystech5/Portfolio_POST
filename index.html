@@ -3,40 +3,356 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GenAI Finance App</title>
+  <title>VoltFolio — Inverse Volatility Portfolio Optimizer</title>
+  
+  <!-- Google Fonts: Space Grotesk & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <header class="app-header">
-    <h1>GenAI Finance App</h1>
-    <p class="subtitle">Template starting point</p>
-  </header>
+  <div class="app-layout">
+    <!-- Header with SVG Logo -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="brand">
+          <div class="brand-logo-wrapper">
+            <!-- Inline SVG: Pulse/volatility waveform merging into an upward arrow -->
+            <svg class="brand-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="voltGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#8b5cf6" />
+                  <stop offset="50%" stop-color="#06b6d4" />
+                  <stop offset="100%" stop-color="#10b981" />
+                </linearGradient>
+              </defs>
+              <rect width="40" height="40" rx="10" fill="url(#voltGradient)" fill-opacity="0.15" />
+              <!-- Volatility pulse into arrow path -->
+              <path d="M6 24L11 24L14 17L18 30L22 13L26 22L29 19L34 10M34 10H27M34 10V17" 
+                    stroke="url(#voltGradient)" 
+                    stroke-width="2.5" 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">Volt<span class="gradient-text">Folio</span></h1>
+            <p class="brand-subtitle">Inverse Volatility Portfolio Optimizer</p>
+          </div>
+        </div>
+        <div class="header-badge">
+          <span class="pulse-dot"></span>
+          <span>Risk-Weighted Allocation Engine</span>
+        </div>
+      </div>
+    </header>
 
-  <main class="app-main">
-    <section class="panel">
-      <form id="ticker-form">
-        <label for="ticker">Ticker</label>
-        <input id="ticker" name="ticker" type="text" placeholder="e.g. AAPL, MSFT, NVDA" required />
-
-        <label for="twelvedata-key">Twelve Data API key</label>
-        <input id="twelvedata-key" name="twelvedata-key" type="password" placeholder="Twelve Data key" required />
-        <p class="field-hint">The free Twelve Data plan covers all US stocks and ETFs, limited to 8 requests/minute and 800/day. Get a free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a>.</p>
-
-        <label for="openrouter-key">OpenRouter API key</label>
-        <input id="openrouter-key" name="openrouter-key" type="password" placeholder="sk-or-..." required />
-
-        <button type="submit">Analyze</button>
-      </form>
+    <!-- Dismissible First-Load Explanatory Banner -->
+    <section id="info-banner" class="info-banner glass-card">
+      <div class="info-banner-content">
+        <div class="info-icon">💡</div>
+        <div class="info-text">
+          <h3>What is Inverse Volatility Weighting?</h3>
+          <p>
+            Unlike traditional market-cap or equal weighting, <strong>Inverse Volatility Weighting</strong> allocates capital proportionally to the inverse of an asset's historical volatility. Assets that fluctuate heavily get smaller allocations, while steady assets receive higher weights. This constructs a risk-balanced portfolio without needing complex correlation matrices.
+          </p>
+        </div>
+        <button id="dismiss-banner-btn" class="dismiss-btn" title="Dismiss explanation" aria-label="Dismiss">
+          <span>Got it</span>
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
     </section>
 
-    <section class="panel" id="results">
-      <p class="placeholder">Results will appear here once you wire up data fetching and your LLM call.</p>
-    </section>
-  </main>
+    <!-- Main Workspace -->
+    <main class="app-main">
+      <!-- Input Panel -->
+      <section class="panel glass-card" id="config-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">1. Portfolio Configuration</h2>
+          <span class="ticker-counter-badge" id="ticker-count-badge">0 / 15 Tickers</span>
+        </div>
 
-  <footer class="app-footer">
-    <p>Replace this scaffold with your own build. See README.md for setup notes.</p>
-  </footer>
+        <form id="portfolio-form" onsubmit="return false;">
+          <!-- Ticker Basket Inputs -->
+          <div class="form-group">
+            <label for="ticker-input">
+              <span>Select Tickers (5 to 15 assets required)</span>
+            </label>
+            <div class="ticker-input-wrapper">
+              <input id="ticker-input" type="text" placeholder="e.g. AAPL, MSFT, NVDA, SPY, GLD" maxlength="10" />
+              <button type="button" id="add-ticker-btn" class="btn btn-secondary">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+                  <path stroke="currentColor" stroke-width="1.5" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                <span>Add Ticker</span>
+              </button>
+            </div>
+            
+            <!-- Quick Presets -->
+            <div class="presets-wrapper">
+              <span class="presets-label">Quick Presets:</span>
+              <div class="preset-buttons">
+                <button type="button" class="preset-chip" data-preset="AAPL,MSFT,NVDA,GOOGL,AMZN,TSLA">Tech Leaders (6)</button>
+                <button type="button" class="preset-chip" data-preset="SPY,QQQ,IWM,TLT,GLD,VNQ">Asset Mix (6)</button>
+                <button type="button" class="preset-chip" data-preset="JNJ,PG,KO,PEP,WMT,COST,MCD">Defensive (7)</button>
+                <button type="button" class="preset-chip" data-preset="JPM,BAC,GS,MS,V,MA">Financials (6)</button>
+              </div>
+            </div>
+
+            <!-- Chips Container -->
+            <div id="ticker-chips" class="ticker-chips-list">
+              <!-- Dynamically populated chips -->
+            </div>
+
+            <div id="ticker-error" class="field-error hidden"></div>
+          </div>
+
+          <!-- Investment Amount -->
+          <div class="form-group">
+            <label for="investment-amount">
+              <span>Optional: Total Amount to Invest ($)</span>
+              <span class="label-hint">Calculates exact dollar allocation per stock</span>
+            </label>
+            <div class="currency-input-wrapper">
+              <span class="currency-symbol">$</span>
+              <input id="investment-amount" type="number" min="1" step="any" placeholder="e.g. 10000" />
+            </div>
+          </div>
+
+          <!-- API Keys Section -->
+          <div class="form-group api-keys-group">
+            <div class="section-divider">
+              <span>API Credentials (Client-Side Only)</span>
+            </div>
+
+            <!-- Twelve Data Key -->
+            <div class="key-field">
+              <label for="twelvedata-key">
+                <span>Twelve Data API Key</span>
+                <span class="lock-icon" title="Stored strictly in your local browser storage. Never sent to any third-party server except twelvedata.com.">
+                  🔒 Local storage
+                </span>
+              </label>
+              <div class="input-with-tooltip">
+                <input id="twelvedata-key" type="password" placeholder="e.g. 8d3a1f..." autocomplete="off" />
+              </div>
+              <p class="field-hint">
+                Required for daily price time-series. Get a free key (8 requests/min) at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a>.
+              </p>
+              <div id="twelvedata-key-error" class="field-error hidden"></div>
+            </div>
+
+            <!-- OpenRouter Key -->
+            <div class="key-field">
+              <label for="openrouter-key">
+                <span>OpenRouter API Key (Optional)</span>
+                <span class="lock-icon" title="Stored strictly in your local browser storage. Used only for AI portfolio explanation calls to OpenRouter.">
+                  🔒 Local storage
+                </span>
+              </label>
+              <div class="input-with-tooltip">
+                <input id="openrouter-key" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+              </div>
+              <p class="field-hint">
+                Required only if you want AI-generated allocation insights via OpenRouter.
+              </p>
+              <div id="openrouter-key-error" class="field-error hidden"></div>
+            </div>
+          </div>
+
+          <!-- Submit Button & Progress Container -->
+          <div class="form-actions">
+            <button id="submit-btn" type="submit" class="btn btn-primary btn-block">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>Analyze & Optimize Portfolio</span>
+            </button>
+          </div>
+
+          <!-- Fetch Progress & Queue Bar -->
+          <div id="fetch-progress-card" class="progress-card hidden">
+            <div class="progress-header">
+              <span id="progress-status-text">Fetching ticker data...</span>
+              <span id="progress-percent">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <div id="rate-limit-notice" class="rate-limit-notice hidden">
+              <div class="spinner"></div>
+              <span id="rate-limit-text">Twelve Data rate limit (8 req/min): Waiting 60s for next batch...</span>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Results Panel -->
+      <section class="panel glass-card" id="results">
+        <div id="results-placeholder" class="results-placeholder">
+          <div class="placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 131l4 4L11 7l4 4 6-6M21 12v9H3V3h9" />
+            </svg>
+          </div>
+          <h3>Portfolio Analysis Ready</h3>
+          <p>Add at least 5 stock or ETF tickers above, enter your Twelve Data key, and click <strong>Analyze & Optimize Portfolio</strong> to generate your risk-weighted allocation.</p>
+        </div>
+
+        <div id="results-content" class="results-content hidden">
+          <!-- Top Results Bar & Controls -->
+          <div class="results-header">
+            <div>
+              <h2 class="results-title">Optimized Asset Allocation</h2>
+              <p class="results-subtitle" id="results-timestamp">Computed from 252 trading days of historical log returns</p>
+            </div>
+            
+            <!-- Equal Weighting Comparison Toggle -->
+            <div class="toggle-control">
+              <span class="toggle-label">Compare with Equal Weighting</span>
+              <label class="switch">
+                <input type="checkbox" id="compare-toggle">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Key Metrics Oversized Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card glass-subcard">
+              <span class="metric-label">Inverse Volatility Portfolio Risk</span>
+              <div class="metric-value-row">
+                <span id="metric-invvol-risk" class="metric-value font-display">--%</span>
+                <span id="metric-risk-reduction" class="metric-tag tag-success">--</span>
+              </div>
+              <span class="metric-footnote">Annualized Portfolio Volatility</span>
+            </div>
+
+            <div id="metric-eqvol-card" class="metric-card glass-subcard hidden">
+              <span class="metric-label">Equal Weight Portfolio Risk</span>
+              <div class="metric-value-row">
+                <span id="metric-eqvol-risk" class="metric-value font-display">--%</span>
+              </div>
+              <span class="metric-footnote">Annualized (1/N Allocation)</span>
+            </div>
+
+            <div class="metric-card glass-subcard">
+              <span class="metric-label">Lowest Volatility Asset</span>
+              <div class="metric-value-row">
+                <span id="metric-lowest-vol-symbol" class="metric-value font-display">--</span>
+                <span id="metric-lowest-vol-val" class="metric-tag tag-neutral">--%</span>
+              </div>
+              <span class="metric-footnote">Receives maximum risk allocation</span>
+            </div>
+
+            <div class="metric-card glass-subcard">
+              <span class="metric-label">Highest Volatility Asset</span>
+              <div class="metric-value-row">
+                <span id="metric-highest-vol-symbol" class="metric-value font-display">--</span>
+                <span id="metric-highest-vol-val" class="metric-tag tag-warning">--%</span>
+              </div>
+              <span class="metric-footnote">Receives minimum risk allocation</span>
+            </div>
+
+            <div id="metric-investment-card" class="metric-card glass-subcard hidden">
+              <span class="metric-label">Total Capital Allocated</span>
+              <div class="metric-value-row">
+                <span id="metric-total-invested" class="metric-value font-display">$0</span>
+              </div>
+              <span class="metric-footnote">Distributed across selected tickers</span>
+            </div>
+          </div>
+
+          <!-- Chart & Breakdown Section -->
+          <div class="visualization-grid">
+            <div class="chart-container glass-subcard">
+              <h3 class="card-subtitle">Weight Distribution</h3>
+              <div class="chart-wrapper">
+                <canvas id="weights-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- AI Explanation Block -->
+            <div class="ai-explainer-card glass-subcard">
+              <div class="ai-header">
+                <div class="ai-title-wrapper">
+                  <span class="ai-sparkle-icon">✨</span>
+                  <h3>AI Allocation Insights</h3>
+                </div>
+                <button id="explain-btn" class="btn btn-ai">
+                  <span>Explain this allocation</span>
+                </button>
+              </div>
+
+              <div id="ai-response-area" class="ai-response-area">
+                <p class="ai-placeholder-text">
+                  Click <strong>"Explain this allocation"</strong> to generate an instant plain-language AI explanation of your risk weights using OpenRouter.
+                </p>
+                
+                <!-- Skeleton Loader -->
+                <div id="ai-skeleton" class="ai-skeleton hidden">
+                  <div class="skeleton-line full"></div>
+                  <div class="skeleton-line medium"></div>
+                  <div class="skeleton-line long"></div>
+                  <div class="skeleton-line short"></div>
+                </div>
+
+                <!-- Text Output -->
+                <div id="ai-content" class="ai-content hidden">
+                  <div class="ai-badge">AI-Generated Analysis</div>
+                  <p id="ai-text"></p>
+                </div>
+
+                <div id="ai-error" class="field-error hidden"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Allocation Data Table -->
+          <div class="table-container glass-subcard">
+            <div class="table-header-row">
+              <h3 class="card-subtitle">Ticker Breakdown & Allocations</h3>
+            </div>
+            
+            <div class="table-responsive">
+              <table id="allocation-table" class="allocation-table">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>Data Points</th>
+                    <th>Ann. Volatility</th>
+                    <th>Inverse Vol Weight</th>
+                    <th class="eq-col hidden">Equal Weight</th>
+                    <th class="eq-col hidden">Weight Diff</th>
+                    <th class="amount-col hidden">Dollar Allocation</th>
+                    <th class="eq-amount-col hidden">Eq-Weight Dollar</th>
+                  </tr>
+                </thead>
+                <tbody id="allocation-table-body">
+                  <!-- Dynamic rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>
+        VoltFolio — Modern Inverse Volatility Portfolio Optimization. Powered by Twelve Data & OpenRouter. All data processed strictly client-side.
+      </p>
+    </footer>
+  </div>
 
   <script type="module" src="./main.js"></script>
 </body>
