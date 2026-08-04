@@ -1,0 +1,6 @@
+{
+  "name": "GenAI Finance App",
+  "description": "Financial research assistant fetching Twelve Data stock price history and generating research notes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
