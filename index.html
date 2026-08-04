@@ -76,8 +76,17 @@
       <!-- Input Panel -->
       <section class="panel glass-card" id="config-panel">
         <div class="panel-header">
-          <h2 class="panel-title">1. Portfolio Configuration</h2>
-          <span class="ticker-counter-badge" id="ticker-count-badge">0 / 15 Tickers</span>
+          <div class="panel-header-title">
+            <h2 class="panel-title">1. Portfolio Configuration</h2>
+            <span class="ticker-counter-badge" id="ticker-count-badge">0 / 15 Tickers</span>
+          </div>
+          <button type="button" id="toggle-api-keys-btn" class="api-keys-toggle-btn" title="Toggle API Keys configuration" aria-expanded="false" aria-controls="api-keys-collapsible">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+            </svg>
+            <span>API Keys</span>
+            <span id="api-keys-status-dot" class="status-dot hidden" title="Keys Saved"></span>
+          </button>
         </div>
 
         <form id="portfolio-form" onsubmit="return false;">
@@ -127,44 +136,46 @@
             </div>
           </div>
 
-          <!-- API Keys Section -->
-          <div class="form-group api-keys-group">
-            <div class="section-divider">
-              <span>API Credentials (Client-Side Only)</span>
-            </div>
-
-            <!-- Twelve Data Key -->
-            <div class="key-field">
-              <label for="twelvedata-key">
-                <span>Twelve Data API Key</span>
-                <span class="lock-icon" title="Stored strictly in your local browser storage. Never sent to any third-party server except twelvedata.com.">
-                  🔒 Local storage
-                </span>
-              </label>
-              <div class="input-with-tooltip">
-                <input id="twelvedata-key" type="password" placeholder="e.g. 8d3a1f..." autocomplete="off" />
+          <!-- API Keys Section (Collapsible) -->
+          <div id="api-keys-collapsible" class="api-keys-collapsible collapsed">
+            <div class="form-group api-keys-group">
+              <div class="section-divider">
+                <span>API Credentials (Client-Side Only)</span>
               </div>
-              <p class="field-hint">
-                Required for daily price time-series. Get a free key (8 requests/min) at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a>.
-              </p>
-              <div id="twelvedata-key-error" class="field-error hidden"></div>
-            </div>
 
-            <!-- OpenRouter Key -->
-            <div class="key-field">
-              <label for="openrouter-key">
-                <span>OpenRouter API Key (Optional)</span>
-                <span class="lock-icon" title="Stored strictly in your local browser storage. Used only for AI portfolio explanation calls to OpenRouter.">
-                  🔒 Local storage
-                </span>
-              </label>
-              <div class="input-with-tooltip">
-                <input id="openrouter-key" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+              <!-- Twelve Data Key -->
+              <div class="key-field">
+                <label for="twelvedata-key">
+                  <span>Twelve Data API Key</span>
+                  <span class="lock-icon" title="Stored strictly in your local browser storage. Never sent to any third-party server except twelvedata.com.">
+                    🔒 Local storage
+                  </span>
+                </label>
+                <div class="input-with-tooltip">
+                  <input id="twelvedata-key" type="password" placeholder="e.g. 8d3a1f..." autocomplete="off" />
+                </div>
+                <p class="field-hint">
+                  Required for daily price time-series. Get a free key (8 requests/min) at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a>.
+                </p>
+                <div id="twelvedata-key-error" class="field-error hidden"></div>
               </div>
-              <p class="field-hint">
-                Required only if you want AI-generated allocation insights via OpenRouter.
-              </p>
-              <div id="openrouter-key-error" class="field-error hidden"></div>
+
+              <!-- OpenRouter Key -->
+              <div class="key-field">
+                <label for="openrouter-key">
+                  <span>OpenRouter API Key (Optional)</span>
+                  <span class="lock-icon" title="Stored strictly in your local browser storage. Used only for AI portfolio explanation calls to OpenRouter.">
+                    🔒 Local storage
+                  </span>
+                </label>
+                <div class="input-with-tooltip">
+                  <input id="openrouter-key" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+                </div>
+                <p class="field-hint">
+                  Required only if you want AI-generated allocation insights via OpenRouter.
+                </p>
+                <div id="openrouter-key-error" class="field-error hidden"></div>
+              </div>
             </div>
           </div>
 
@@ -187,6 +198,9 @@
             <div class="progress-bar-bg">
               <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
             </div>
+            <div class="progress-actions">
+              <button type="button" id="cancel-fetch-btn" class="btn btn-secondary btn-sm">Cancel</button>
+            </div>
             <div id="rate-limit-notice" class="rate-limit-notice hidden">
               <div class="spinner"></div>
               <span id="rate-limit-text">Twelve Data rate limit (8 req/min): Waiting 60s for next batch...</span>
@@ -200,7 +214,7 @@
         <div id="results-placeholder" class="results-placeholder">
           <div class="placeholder-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 131l4 4L11 7l4 4 6-6M21 12v9H3V3h9" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13l4 4L11 7l4 4 6-6M21 12v9H3V3h9" />
             </svg>
           </div>
           <h3>Portfolio Analysis Ready</h3>
@@ -260,6 +274,15 @@
                 <span id="metric-highest-vol-val" class="metric-tag tag-warning">--%</span>
               </div>
               <span class="metric-footnote">Receives minimum risk allocation</span>
+            </div>
+
+            <div class="metric-card glass-subcard">
+              <span class="metric-label">Diversification Score</span>
+              <div class="metric-value-row">
+                <span id="metric-diversification-score" class="metric-value font-display">--/100</span>
+                <span id="metric-diversification-tag" class="metric-tag tag-neutral">--</span>
+              </div>
+              <span class="metric-footnote" id="metric-diversification-footnote">Low correlation = better diversification</span>
             </div>
 
             <div id="metric-investment-card" class="metric-card glass-subcard hidden">
@@ -341,6 +364,65 @@
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <!-- Pairwise Correlation Matrix -->
+          <div class="correlation-container glass-subcard">
+            <div class="table-header-row">
+              <div>
+                <h3 class="card-subtitle">Pairwise Correlation Matrix</h3>
+                <p class="section-desc">Measures co-movement between assets using daily log returns. Lower or negative values diversify portfolio risk.</p>
+              </div>
+            </div>
+            <div class="matrix-responsive">
+              <div id="correlation-matrix-grid" class="correlation-matrix-grid"></div>
+            </div>
+          </div>
+
+          <!-- Historical Crisis Stress Test -->
+          <div class="stress-test-container glass-subcard">
+            <div class="stress-test-header">
+              <div>
+                <h3 class="card-subtitle">Historical Crisis Stress Test</h3>
+                <p class="section-desc">Simulate how your current risk-weighted allocation would have performed during major historical selloffs.</p>
+              </div>
+              <div class="stress-test-controls">
+                <select id="stress-scenario-select" class="form-select">
+                  <option value="2020_covid">2020 COVID Crash (Feb 19 - Mar 23, 2020)</option>
+                  <option value="2022_rates">2022 Rate Hike Selloff (Jan 3 - Oct 14, 2022)</option>
+                  <option value="2023_tech">2023 Tech Rally (Jan 3 - Jul 31, 2023)</option>
+                </select>
+                <button type="button" id="run-stress-test-btn" class="btn btn-secondary">
+                  <span>Run Stress Test</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="stress-test-results" class="stress-test-results hidden">
+              <div class="stress-metrics-row">
+                <div class="stress-metric-item">
+                  <span class="stress-metric-label">Total Period Return</span>
+                  <span id="stress-total-return" class="stress-metric-val">--%</span>
+                </div>
+                <div class="stress-metric-item">
+                  <span class="stress-metric-label">Max Drawdown</span>
+                  <span id="stress-max-drawdown" class="stress-metric-val danger-text">--%</span>
+                </div>
+                <div class="stress-metric-item">
+                  <span class="stress-metric-label">Final Portfolio Value</span>
+                  <span id="stress-end-value" class="stress-metric-val">$--</span>
+                </div>
+              </div>
+              <div class="stress-chart-wrapper">
+                <canvas id="stress-chart"></canvas>
+              </div>
+            </div>
+
+            <div id="stress-test-loading" class="stress-test-loading hidden">
+              <div class="spinner"></div>
+              <span id="stress-loading-text">Fetching historical price data for stress scenario...</span>
+            </div>
+            <div id="stress-test-error" class="field-error hidden"></div>
           </div>
         </div>
       </section>

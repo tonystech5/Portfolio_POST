@@ -1,8 +1,6 @@
-# genai-finance-spa-template
+# VoltFolio
 
-The single page application template for students.
-
-**Live demo:** https://kwartler.github.io/vienna-genai-spa-template/
+Inverse Volatility Portfolio Optimizer with Twelve Data real-time historical market price integration and OpenRouter AI executive commentary.
 
 > **⚠️ First-run setup (do this once): in your repo go to Settings → Pages and set Source to "GitHub Actions".** Without it your deployed page will be broken or unstyled. Full steps in [SETUP.md](SETUP.md).
 
@@ -58,7 +56,7 @@ Common **OpenRouter** (research note) codes:
 | 429 | Rate limited | Wait a moment, then try again |
 | 400, "Provider returned error" | The model provider rejected the request | Read the part after `[provider: ...]`, it names the real problem (often a parameter limit) |
 
-The most common **400** for this app was a reasoning model refusing a small token budget. This template already sets `max_tokens: 2000` and `reasoning: { enabled: false }` in `main.js` to avoid it, so if you change the model or those values and see a 400 again, that is the first thing to check.
+The most common **400** for this app was a reasoning model refusing a small token budget. VoltFolio already sets `max_tokens: 2000` and `reasoning: { enabled: false }` in `main.js` to avoid it, so if you change the model or those values and see a 400 again, that is the first thing to check.
 
 **Twelve Data** (price data) errors show their own message too. Usually it is an invalid key, an unknown ticker, or the free plan's limit (8 requests per minute, 800 per day) being hit, in which case wait a minute and retry.
 

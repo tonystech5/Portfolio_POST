@@ -1,6 +1,6 @@
 # Setup
 
-Follow this once after you create your repo from this template. It takes about two minutes.
+Follow this once after you create your repository. It takes about two minutes.
 
 ## 1. Turn on GitHub Pages (required, once per repo)
 
