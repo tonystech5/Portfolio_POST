@@ -1,5 +1,6 @@
 {
   "name": "VoltFolio",
   "description": "Inverse Volatility Portfolio Optimizer with Twelve Data price series integration and OpenRouter AI insights.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

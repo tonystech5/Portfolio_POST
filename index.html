@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VoltFolio — Inverse Volatility Portfolio Optimizer</title>
+  <meta name="description" content="Inverse Volatility Portfolio Optimizer with Twelve Data price series integration and OpenRouter AI insights." />
+  <meta property="og:title" content="VoltFolio — Inverse Volatility Portfolio Optimizer" />
+  <meta property="og:description" content="Inverse Volatility Portfolio Optimizer with Twelve Data price series integration and OpenRouter AI insights." />
   
   <!-- Google Fonts: Space Grotesk & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -361,6 +364,32 @@
                 </thead>
                 <tbody id="allocation-table-body">
                   <!-- Dynamic rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Trading Signal Summary Panel -->
+          <div class="trading-signals-container glass-subcard">
+            <div class="table-header-row">
+              <div>
+                <h3 class="card-subtitle">Trading Signal Summary</h3>
+                <p class="section-desc">Technical momentum and overbought filters: <strong>PASS</strong> requires RSI (14) &lt; 70 (not overbought) AND MACD Histogram (12, 26, 9) &gt; 0 (positive upward momentum).</p>
+              </div>
+            </div>
+            
+            <div class="table-responsive">
+              <table id="trading-signals-table" class="trading-signals-table allocation-table">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>RSI (14)</th>
+                    <th>MACD Histogram (12, 26, 9)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="trading-signals-table-body">
+                  <!-- Dynamic signal rows -->
                 </tbody>
               </table>
             </div>

@@ -126,6 +126,7 @@ const elements = {
 
   // Table
   allocationTableBody: document.getElementById('allocation-table-body'),
+  tradingSignalsTableBody: document.getElementById('trading-signals-table-body'),
 
   // Diversification Score
   metricDiversificationScore: document.getElementById('metric-diversification-score'),
@@ -590,27 +591,152 @@ function updateProgress(percent, statusText) {
 }
 
 // ==========================================
-// MATHEMATICAL CORE FUNCTIONS
+// MATHEMATICAL CORE & TECHNICAL INDICATOR FUNCTIONS
 // ==========================================
 
 /**
+ * Calculates 14-period Relative Strength Index (RSI) using Wilder's smoothing technique.
+ * Formula:
+ * RS = Smoothed Average Gain / Smoothed Average Loss
+ * RSI = 100 - (100 / (1 + RS))
+ */
+function calculateRSI(prices, period = 14) {
+  if (!prices || prices.length <= period) {
+    return 50; // Fallback neutral if insufficient data
+  }
+
+  const changes = [];
+  for (let i = 1; i < prices.length; i++) {
+    changes.push(prices[i] - prices[i - 1]);
+  }
+
+  let avgGain = 0;
+  let avgLoss = 0;
+
+  // First period SMA of gains and losses
+  for (let i = 0; i < period; i++) {
+    const chg = changes[i];
+    if (chg > 0) avgGain += chg;
+    else if (chg < 0) avgLoss += Math.abs(chg);
+  }
+  avgGain /= period;
+  avgLoss /= period;
+
+  // Wilder's Exponential Smoothing for subsequent periods
+  for (let i = period; i < changes.length; i++) {
+    const chg = changes[i];
+    const gain = chg > 0 ? chg : 0;
+    const loss = chg < 0 ? Math.abs(chg) : 0;
+
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+  }
+
+  if (avgLoss === 0) {
+    return avgGain === 0 ? 50 : 100;
+  }
+
+  const rs = avgGain / avgLoss;
+  return 100 - (100 / (1 + rs));
+}
+
+/**
+ * Computes Exponential Moving Average (EMA) series
+ */
+function computeEMA(values, period) {
+  if (!values || values.length === 0) return [];
+  const k = 2 / (period + 1);
+  const ema = [];
+
+  let sum = 0;
+  const initPeriod = Math.min(period, values.length);
+  for (let i = 0; i < initPeriod; i++) {
+    sum += values[i];
+  }
+  let currentEma = sum / initPeriod;
+
+  for (let i = 0; i < values.length; i++) {
+    if (i < initPeriod - 1) {
+      ema.push(null);
+    } else if (i === initPeriod - 1) {
+      ema.push(currentEma);
+    } else {
+      currentEma = values[i] * k + currentEma * (1 - k);
+      ema.push(currentEma);
+    }
+  }
+
+  return ema;
+}
+
+/**
+ * Calculates Moving Average Convergence Divergence (MACD 12, 26, 9)
+ * Formula:
+ * MACD Line = EMA_12(Prices) - EMA_26(Prices)
+ * Signal Line = EMA_9(MACD Line)
+ * MACD Histogram = MACD Line - Signal Line
+ */
+function calculateMACD(prices, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+  if (!prices || prices.length < 2) {
+    return { macdLine: 0, signalLine: 0, histogram: 0 };
+  }
+
+  const fastEMA = computeEMA(prices, fastPeriod);
+  const slowEMA = computeEMA(prices, slowPeriod);
+
+  // Compute MACD Line = Fast EMA - Slow EMA
+  const macdSeries = [];
+  const validMacdValues = [];
+  const validIndices = [];
+
+  for (let i = 0; i < prices.length; i++) {
+    if (fastEMA[i] !== null && slowEMA[i] !== null) {
+      const macdVal = fastEMA[i] - slowEMA[i];
+      macdSeries.push(macdVal);
+      validMacdValues.push(macdVal);
+      validIndices.push(i);
+    } else {
+      macdSeries.push(null);
+    }
+  }
+
+  if (validMacdValues.length === 0) {
+    return { macdLine: 0, signalLine: 0, histogram: 0 };
+  }
+
+  // Signal Line = 9-period EMA of MACD Line
+  const signalEma = computeEMA(validMacdValues, signalPeriod);
+
+  const latestMacd = validMacdValues[validMacdValues.length - 1];
+  const latestSignal = signalEma[signalEma.length - 1] ?? latestMacd;
+  const latestHist = (latestMacd !== undefined && latestSignal !== undefined) ? (latestMacd - latestSignal) : 0;
+
+  return {
+    macdLine: latestMacd,
+    signalLine: latestSignal,
+    histogram: latestHist
+  };
+}
+
+/**
  * Calculates Log Returns, Annualized Volatility, Inverse Volatility Weights,
- * Pairwise Pearson Correlation Matrix, and Basket Diversification Score.
+ * Trading Signals (RSI 14 & MACD 12/26/9), Pairwise Pearson Correlation Matrix,
+ * and Basket Diversification Score.
  * 
  * FORMULA SPECIFICATIONS:
  * 1. Log Daily Return: r_t = ln(Price_t / Price_{t-1})
  * 2. Daily Volatility: s = sqrt( sum((r_t - mean)^2) / (N - 1) )
  * 3. Annualized Volatility: vol_i = s * sqrt(252)
  * 4. Inverse Volatility Weight: w_i = (1 / vol_i) / sum(1 / vol_j)
- * 5. Pearson Pairwise Correlation:
+ * 5. RSI (14-period): Wilder's smoothed momentum oscillator [0, 100]
+ * 6. MACD (12, 26, 9): Fast EMA(12) - Slow EMA(26); Signal = EMA(9); Histogram = MACD - Signal
+ * 7. Signal Status: PASS if RSI < 70 (not overbought) AND MACD Histogram > 0 (upward momentum), else FAIL
+ * 8. Pearson Pairwise Correlation:
  *    r(X, Y) = sum((X_k - mean_X) * (Y_k - mean_Y)) / ( sqrt(sum((X_k - mean_X)^2)) * sqrt(sum((Y_k - mean_Y)^2)) )
  *    Calculates co-movement of daily log returns for ticker pair (X, Y) on overlapping trading days.
- * 6. Basket Diversification Score:
+ * 9. Basket Diversification Score:
  *    Given average pairwise correlation r_avg across all N*(N-1)/2 ticker pairs:
  *    Score = Math.round(Math.max(0, Math.min(100, (1 - r_avg) * 50)))
- *    - r_avg = +1.0 (perfect positive correlation) -> Score = 0 (No diversification benefit)
- *    - r_avg = 0.0 (uncorrelated assets) -> Score = 50 (Moderate diversification)
- *    - r_avg = -1.0 (perfect inverse correlation) -> Score = 100 (Maximum diversification)
  */
 function calculateInverseVolatilityPortfolio(dataMap) {
   const tickers = Object.keys(dataMap);
@@ -656,15 +782,30 @@ function calculateInverseVolatilityPortfolio(dataMap) {
       throw new Error(`${ticker} has zero historical volatility — insufficient price variation to compute weights`);
     }
 
+    // Step 5: Technical Indicators (RSI 14 & MACD 12/26/9)
+    const priceSeries = sortedItems.map(item => item.price);
+    const rsi = calculateRSI(priceSeries, 14);
+    const macdResult = calculateMACD(priceSeries, 12, 26, 9);
+    const macdHist = macdResult.histogram !== null ? macdResult.histogram : 0;
+    const isRsiPass = rsi < 70;
+    const isMacdPass = macdHist > 0;
+    const signalStatus = (isRsiPass && isMacdPass) ? 'PASS' : 'FAIL';
+
     stats.push({
       ticker,
       dataPoints: sortedItems.length,
       annualizedVol,
-      invVol: 1 / annualizedVol
+      invVol: 1 / annualizedVol,
+      rsi,
+      macdResult,
+      macdHist,
+      isRsiPass,
+      isMacdPass,
+      signalStatus
     });
   }
 
-  // Step 5: Compute Inverse Volatility Weights
+  // Step 6: Compute Inverse Volatility Weights
   const totalInvVol = stats.reduce((sum, item) => sum + item.invVol, 0);
   const equalWeight = 1 / stats.length;
 
@@ -833,7 +974,10 @@ function renderResults(results) {
   // 3. Render Table
   renderTable(results);
 
-  // 4. Render Correlation Matrix Heatmap
+  // 4. Render Trading Signal Summary Table
+  renderTradingSignalsTable(results);
+
+  // 5. Render Correlation Matrix Heatmap
   renderCorrelationMatrix(results.correlationMatrix, results.tickersList);
 }
 
@@ -1301,6 +1445,65 @@ function renderTable(results) {
     `;
 
     elements.allocationTableBody.appendChild(row);
+  });
+}
+
+function renderTradingSignalsTable(results) {
+  if (!elements.tradingSignalsTableBody || !results.tickerStats) return;
+  elements.tradingSignalsTableBody.innerHTML = '';
+
+  results.tickerStats.forEach((item, index) => {
+    const row = document.createElement('tr');
+    const color = CHART_COLORS[index % CHART_COLORS.length];
+
+    const rsiVal = item.rsi;
+    const rsiFormatted = (typeof rsiVal === 'number' && !isNaN(rsiVal)) ? rsiVal.toFixed(2) : '--';
+    
+    const macdHistVal = item.macdHist;
+    const macdHistFormatted = (typeof macdHistVal === 'number' && !isNaN(macdHistVal))
+      ? (macdHistVal >= 0 ? `+${macdHistVal.toFixed(4)}` : macdHistVal.toFixed(4))
+      : '--';
+
+    const macdClass = (typeof macdHistVal === 'number' && macdHistVal > 0) ? 'macd-val-pos' : 'macd-val-neg';
+
+    // Status Badge (PASS / FAIL) based on: RSI < 70 AND MACD Histogram > 0
+    const isPass = item.signalStatus === 'PASS';
+    const statusBadge = isPass
+      ? `<span class="signal-badge signal-badge-pass" title="Pass criteria met: RSI ${rsiFormatted} (< 70) and MACD Hist ${macdHistFormatted} (> 0)">PASS</span>`
+      : `<span class="signal-badge signal-badge-fail" title="Failed criteria: ${!item.isRsiPass ? 'RSI >= 70 (Overbought). ' : ''}${!item.isMacdPass ? 'MACD Histogram <= 0 (Downward momentum).' : ''}">FAIL</span>`;
+
+    // RSI descriptive tag
+    let rsiTag = '';
+    if (typeof rsiVal === 'number' && !isNaN(rsiVal)) {
+      if (rsiVal >= 70) {
+        rsiTag = `<span class="rsi-tag tag-warning" title="Overbought (>= 70)">Overbought</span>`;
+      } else if (rsiVal <= 30) {
+        rsiTag = `<span class="rsi-tag tag-neutral" title="Oversold (<= 30)">Oversold</span>`;
+      } else {
+        rsiTag = `<span class="rsi-tag" title="Normal Range (< 70)">Normal</span>`;
+      }
+    }
+
+    row.innerHTML = `
+      <td class="ticker-cell" data-label="Ticker">
+        <span class="ticker-dot" style="background-color: ${color}"></span>
+        <span>${item.ticker}</span>
+      </td>
+      <td data-label="RSI (14)">
+        <div class="rsi-value-pill">
+          <span class="rsi-val">${rsiFormatted}</span>
+          ${rsiTag}
+        </div>
+      </td>
+      <td data-label="MACD Histogram (12, 26, 9)">
+        <span class="${macdClass}">${macdHistFormatted}</span>
+      </td>
+      <td data-label="Status">
+        ${statusBadge}
+      </td>
+    `;
+
+    elements.tradingSignalsTableBody.appendChild(row);
   });
 }
 
