@@ -394,6 +394,79 @@
             </div>
           </div>
 
+          <!-- R Portfolio Optimization Comparison Panel -->
+          <div class="r-comparison-container glass-subcard">
+            <div class="table-header-row">
+              <div>
+                <h3 class="card-subtitle">R Portfolio Optimization Comparison</h3>
+                <p class="section-desc">Comparison of mathematical allocations: R Quadratic Programming (Minimum Variance &amp; Maximum Sharpe with Bayes-Stein shrinkage) vs. live JavaScript Inverse-Volatility weighting.</p>
+              </div>
+            </div>
+            
+            <div class="table-responsive">
+              <table id="r-comparison-table" class="r-comparison-table allocation-table">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>R Min-Variance Weight (%)</th>
+                    <th>R Max-Sharpe Weight (%)</th>
+                    <th>JS Inverse-Vol Weight (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="r-comparison-table-body">
+                  <!-- Dynamic R comparison rows -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- R Portfolio Metrics Summary Cards -->
+            <div id="r-metrics-summary" class="r-metrics-summary-grid">
+              <!-- Min Variance Metrics Card -->
+              <div class="r-metric-card">
+                <div class="r-metric-card-header">
+                  <span class="r-metric-badge">R Model</span>
+                  <h4>Minimum Variance Portfolio</h4>
+                </div>
+                <div class="r-metric-stats">
+                  <div class="r-stat-item">
+                    <span class="r-stat-label">Expected Return</span>
+                    <span id="r-minvar-return" class="r-stat-val">--</span>
+                  </div>
+                  <div class="r-stat-item">
+                    <span class="r-stat-label">Volatility</span>
+                    <span id="r-minvar-volatility" class="r-stat-val">--</span>
+                  </div>
+                  <div class="r-stat-item">
+                    <span class="r-stat-label">Sharpe Ratio</span>
+                    <span id="r-minvar-sharpe" class="r-stat-val">--</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Max Sharpe Metrics Card -->
+              <div class="r-metric-card">
+                <div class="r-metric-card-header">
+                  <span class="r-metric-badge r-badge-sharpe">R Model</span>
+                  <h4>Maximum Sharpe Ratio Portfolio</h4>
+                </div>
+                <div class="r-metric-stats">
+                  <div class="r-stat-item">
+                    <span class="r-stat-label">Expected Return</span>
+                    <span id="r-maxsharpe-return" class="r-stat-val">--</span>
+                  </div>
+                  <div class="r-stat-item">
+                    <span class="r-stat-label">Volatility</span>
+                    <span id="r-maxsharpe-volatility" class="r-stat-val">--</span>
+                  </div>
+                  <div class="r-stat-item">
+                    <span class="r-stat-label">Sharpe Ratio</span>
+                    <span id="r-maxsharpe-sharpe" class="r-stat-val">--</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Pairwise Correlation Matrix -->
           <div class="correlation-container glass-subcard">
             <div class="table-header-row">

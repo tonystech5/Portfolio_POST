@@ -128,6 +128,15 @@ const elements = {
   allocationTableBody: document.getElementById('allocation-table-body'),
   tradingSignalsTableBody: document.getElementById('trading-signals-table-body'),
 
+  // R Portfolio Optimization Comparison
+  rComparisonTableBody: document.getElementById('r-comparison-table-body'),
+  rMinvarReturn: document.getElementById('r-minvar-return'),
+  rMinvarVolatility: document.getElementById('r-minvar-volatility'),
+  rMinvarSharpe: document.getElementById('r-minvar-sharpe'),
+  rMaxsharpeReturn: document.getElementById('r-maxsharpe-return'),
+  rMaxsharpeVolatility: document.getElementById('r-maxsharpe-volatility'),
+  rMaxsharpeSharpe: document.getElementById('r-maxsharpe-sharpe'),
+
   // Diversification Score
   metricDiversificationScore: document.getElementById('metric-diversification-score'),
   metricDiversificationTag: document.getElementById('metric-diversification-tag'),
@@ -149,6 +158,8 @@ const elements = {
   stressTestError: document.getElementById('stress-test-error')
 };
 
+let rPortfolioWeightsData = null;
+
 // ==========================================
 // INITIALIZATION
 // ==========================================
@@ -157,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSavedState();
   setupEventListeners();
   renderTickerChips();
+  fetchRPortfolioWeights();
 });
 
 function updateApiKeyStatusUI() {
@@ -977,7 +989,10 @@ function renderResults(results) {
   // 4. Render Trading Signal Summary Table
   renderTradingSignalsTable(results);
 
-  // 5. Render Correlation Matrix Heatmap
+  // 5. Render R Portfolio Optimization Comparison Table
+  renderRComparisonTable(results, rPortfolioWeightsData);
+
+  // 6. Render Correlation Matrix Heatmap
   renderCorrelationMatrix(results.correlationMatrix, results.tickersList);
 }
 
@@ -1504,6 +1519,133 @@ function renderTradingSignalsTable(results) {
     `;
 
     elements.tradingSignalsTableBody.appendChild(row);
+  });
+}
+
+// ==========================================
+// R PORTFOLIO OPTIMIZATION COMPARISON
+// ==========================================
+
+async function fetchRPortfolioWeights() {
+  try {
+    const res = await fetch('./ai_infra_portfolio_weights.json');
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    rPortfolioWeightsData = await res.json();
+    renderRMetricsSummary(rPortfolioWeightsData);
+    if (state.latestResults) {
+      renderRComparisonTable(state.latestResults, rPortfolioWeightsData);
+    }
+  } catch (err) {
+    console.warn('Could not load R portfolio weights JSON:', err);
+  }
+}
+
+function renderRMetricsSummary(data) {
+  if (!data || !data.portfolio_metrics) return;
+  const { min_variance, max_sharpe } = data.portfolio_metrics;
+
+  if (min_variance) {
+    if (elements.rMinvarReturn) {
+      elements.rMinvarReturn.textContent = typeof min_variance.expected_return === 'number'
+        ? `${(min_variance.expected_return * 100).toFixed(2)}%`
+        : '--';
+    }
+    if (elements.rMinvarVolatility) {
+      elements.rMinvarVolatility.textContent = typeof min_variance.volatility === 'number'
+        ? `${(min_variance.volatility * 100).toFixed(2)}%`
+        : '--';
+    }
+    if (elements.rMinvarSharpe) {
+      elements.rMinvarSharpe.textContent = typeof min_variance.sharpe === 'number'
+        ? min_variance.sharpe.toFixed(4)
+        : '--';
+    }
+  }
+
+  if (max_sharpe) {
+    if (elements.rMaxsharpeReturn) {
+      elements.rMaxsharpeReturn.textContent = typeof max_sharpe.expected_return === 'number'
+        ? `${(max_sharpe.expected_return * 100).toFixed(2)}%`
+        : '--';
+    }
+    if (elements.rMaxsharpeVolatility) {
+      elements.rMaxsharpeVolatility.textContent = typeof max_sharpe.volatility === 'number'
+        ? `${(max_sharpe.volatility * 100).toFixed(2)}%`
+        : '--';
+    }
+    if (elements.rMaxsharpeSharpe) {
+      elements.rMaxsharpeSharpe.textContent = typeof max_sharpe.sharpe === 'number'
+        ? max_sharpe.sharpe.toFixed(4)
+        : '--';
+    }
+  }
+}
+
+function renderRComparisonTable(results, rData) {
+  if (!elements.rComparisonTableBody) return;
+  elements.rComparisonTableBody.innerHTML = '';
+
+  const rMinVarWeights = (rData && rData.min_variance_weights) || {};
+  const rMaxSharpeWeights = (rData && rData.max_sharpe_weights) || {};
+  const jsStatsMap = new Map();
+
+  if (results && Array.isArray(results.tickerStats)) {
+    results.tickerStats.forEach(stat => {
+      jsStatsMap.set(stat.ticker.toUpperCase(), stat);
+    });
+  }
+
+  // Combine unique tickers from both sides:
+  // 1. First add live portfolio tickers (preserving active basket order)
+  const allTickersSet = new Set();
+  if (results && Array.isArray(results.tickerStats)) {
+    results.tickerStats.forEach(stat => allTickersSet.add(stat.ticker.toUpperCase()));
+  }
+
+  // 2. Next add all remaining tickers from R dataset
+  Object.keys(rMinVarWeights).forEach(t => allTickersSet.add(t.toUpperCase()));
+  Object.keys(rMaxSharpeWeights).forEach(t => allTickersSet.add(t.toUpperCase()));
+
+  const allTickers = Array.from(allTickersSet);
+
+  allTickers.forEach((symbol, index) => {
+    const row = document.createElement('tr');
+    const color = CHART_COLORS[index % CHART_COLORS.length];
+
+    // R Min-Variance Weight (%)
+    let rMinVarFormatted = '<span class="text-dim">N/A</span>';
+    if (rMinVarWeights[symbol] !== undefined && rMinVarWeights[symbol] !== null) {
+      const val = Math.abs(rMinVarWeights[symbol]);
+      rMinVarFormatted = `${(val * 100).toFixed(2)}%`;
+    }
+
+    // R Max-Sharpe Weight (%)
+    let rMaxSharpeFormatted = '<span class="text-dim">N/A</span>';
+    if (rMaxSharpeWeights[symbol] !== undefined && rMaxSharpeWeights[symbol] !== null) {
+      const val = Math.abs(rMaxSharpeWeights[symbol]);
+      rMaxSharpeFormatted = `${(val * 100).toFixed(2)}%`;
+    }
+
+    // JS Inverse-Vol Weight (%)
+    let jsInvVolFormatted = '<span class="text-dim">N/A</span>';
+    const jsStat = jsStatsMap.get(symbol);
+    if (jsStat && typeof jsStat.invWeight === 'number') {
+      jsInvVolFormatted = `${(jsStat.invWeight * 100).toFixed(2)}%`;
+    }
+
+    row.innerHTML = `
+      <td class="ticker-cell" data-label="Ticker">
+        <span class="ticker-dot" style="background-color: ${color}"></span>
+        <span>${symbol}</span>
+      </td>
+      <td data-label="R Min-Variance Weight (%)">${rMinVarFormatted}</td>
+      <td data-label="R Max-Sharpe Weight (%)">${rMaxSharpeFormatted}</td>
+      <td data-label="JS Inverse-Vol Weight (%)">${jsInvVolFormatted}</td>
+    `;
+
+    elements.rComparisonTableBody.appendChild(row);
   });
 }
 
