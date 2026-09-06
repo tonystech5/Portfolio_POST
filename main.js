@@ -34,6 +34,11 @@ const CHART_COLORS = [
 // Default Ticker Set if none saved
 const DEFAULT_TICKERS = ['NVDA', 'MSFT', 'AVGO', 'VRT', 'ETN'];
 
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+}
+
 // ==========================================
 // STATE MANAGEMENT
 // ==========================================
