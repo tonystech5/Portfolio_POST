@@ -1,0 +1,61 @@
+{
+  "max_weight_constraint": 0.15,
+  "shrinkage_target": 0.1,
+  "shrinkage_factor": 0.7,
+  "min_variance_weights": {
+    "NVDA": 0.0608,
+    "AMD": 0,
+    "INTC": -0,
+    "MSFT": 0.15,
+    "GOOGL": 0.15,
+    "AMZN": 0.0986,
+    "META": 0.15,
+    "AVGO": -0,
+    "ANET": -0,
+    "CSCO": 0.15,
+    "VRT": -0,
+    "ETN": 0.1144,
+    "NRG": 0.0847,
+    "MU": 0,
+    "WDC": 0,
+    "ASML": 0,
+    "AMAT": 0,
+    "ORCL": -0,
+    "PLTR": 0.0005,
+    "CRWD": 0.0409
+  },
+  "max_sharpe_weights": {
+    "NVDA": 0,
+    "AMD": 0,
+    "INTC": 0.0449,
+    "MSFT": 0.1482,
+    "GOOGL": 0.15,
+    "AMZN": 0.0353,
+    "META": -0,
+    "AVGO": -0,
+    "ANET": 0,
+    "CSCO": 0.15,
+    "VRT": -0,
+    "ETN": 0,
+    "NRG": 0,
+    "MU": 0.15,
+    "WDC": 0.1068,
+    "ASML": 0.0648,
+    "AMAT": 0,
+    "ORCL": 0,
+    "PLTR": 0,
+    "CRWD": 0.15
+  },
+  "portfolio_metrics": {
+    "min_variance": {
+      "expected_return": 0.1415,
+      "volatility": 0.2022,
+      "sharpe": 0.5266
+    },
+    "max_sharpe": {
+      "expected_return": 0.3732,
+      "volatility": 0.3138,
+      "sharpe": 1.0778
+    }
+  }
+}
