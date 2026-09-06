@@ -32,7 +32,7 @@ const CHART_COLORS = [
 ];
 
 // Default Ticker Set if none saved
-const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'SPY', 'GLD'];
+const DEFAULT_TICKERS = ['NVDA', 'MSFT', 'AVGO', 'VRT', 'ETN'];
 
 // ==========================================
 // STATE MANAGEMENT
