@@ -1375,6 +1375,7 @@ function renderChart(results) {
                     fillStyle: style.backgroundColor,
                     strokeStyle: style.borderColor,
                     lineWidth: style.borderWidth,
+                    fontColor: '#94a3b8',
                     hidden: isNaN(rawVal) || (meta.data[i] && meta.data[i].hidden),
                     index: i
                   };
@@ -1527,19 +1528,29 @@ function renderTradingSignalsTable(results) {
 // ==========================================
 
 async function fetchRPortfolioWeights() {
-  try {
-    const res = await fetch('./ai_infra_portfolio_weights.json');
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+  const possiblePaths = [
+    './ai_infra_portfolio_weights.json',
+    'ai_infra_portfolio_weights.json',
+    '/ai_infra_portfolio_weights.json',
+    './public/ai_infra_portfolio_weights.json'
+  ];
+
+  for (const path of possiblePaths) {
+    try {
+      const res = await fetch(path);
+      if (res.ok) {
+        rPortfolioWeightsData = await res.json();
+        renderRMetricsSummary(rPortfolioWeightsData);
+        if (state.latestResults) {
+          renderRComparisonTable(state.latestResults, rPortfolioWeightsData);
+        }
+        return;
+      }
+    } catch (e) {
+      // Try next path
     }
-    rPortfolioWeightsData = await res.json();
-    renderRMetricsSummary(rPortfolioWeightsData);
-    if (state.latestResults) {
-      renderRComparisonTable(state.latestResults, rPortfolioWeightsData);
-    }
-  } catch (err) {
-    console.warn('Could not load R portfolio weights JSON:', err);
   }
+  console.warn('Could not load R portfolio weights JSON from any candidate path.');
 }
 
 function renderRMetricsSummary(data) {
